@@ -156,6 +156,13 @@ visual artifacts; this helper disables active themes first."
   ;; Remember cursor position in files across sessions.
   (save-place-mode 1))
 
+;; Treat nested language projects as project roots inside larger monorepos.
+;; This keeps LSP workspace roots aligned with the package/crate being edited.
+(use-package project
+  :ensure nil
+  :custom
+  (project-vc-extra-root-markers '("Cargo.toml" "pyproject.toml")))
+
 ;; Keybindings: text scaling. Bound to both Ctrl (universal muscle memory)
 ;; and Meta (Mac convention for Cmd-+, Cmd--, Cmd-0).
 (use-package emacs
@@ -201,6 +208,12 @@ visual artifacts; this helper disables active themes first."
   :when (eq system-type 'darwin)
   :config
   (exec-path-from-shell-initialize))
+
+;; Apply direnv/nix-direnv environments per buffer before tools like LSP
+;; decide which project-local executables are available.
+(use-package envrc
+  :config
+  (envrc-global-mode 1))
 
 
 ;;; -- Themes --
@@ -392,13 +405,51 @@ visual artifacts; this helper disables active themes first."
           (cons "emacs-lsp-booster" orig-result))
       orig-result)))
 
+(defun mzacuna/lsp-booster-status ()
+  "Report whether `emacs-lsp-booster' is active for local LSP commands."
+  (interactive)
+  (require 'lsp-mode)
+  (let* ((json-parser (if (fboundp 'json-parse-buffer)
+                          'json-parse-buffer
+                        'json-read))
+         (resolved-command
+          (let ((default-directory (expand-file-name "~/")))
+            (lsp-resolve-final-command '("basedpyright-langserver" "--stdio"))))
+         (wrapped (equal (car resolved-command) "emacs-lsp-booster")))
+    (message
+     "lsp-booster: executable=%s, command-advice=%s, json-advice=%s, plists=%s, sample-command=%S"
+     (or (executable-find "emacs-lsp-booster") "missing")
+     (if (advice-member-p #'lsp-booster--advice-final-command
+                          'lsp-resolve-final-command)
+         "yes"
+       "no")
+     (if (advice-member-p #'lsp-booster--advice-json-parse json-parser)
+         "yes"
+       "no")
+     lsp-use-plists
+     (if wrapped resolved-command "not wrapped"))))
+
+(defun mzacuna/lsp-reset-project-root ()
+  "Forget the LSP session root containing this buffer and restart LSP.
+Use this when `lsp-mode' remembered a parent directory, such as a monorepo
+root, but the current buffer belongs to a nested project."
+  (interactive)
+  (require 'lsp-mode)
+  (let* ((file (or (buffer-file-name) default-directory))
+         (folder (lsp-find-session-folder (lsp-session) file)))
+    (unless folder
+      (user-error "No LSP session folder contains %s" file))
+    (when (yes-or-no-p (format "Remove LSP session folder %s? " folder))
+      (lsp-workspace-folders-remove folder)
+      (message "Removed %s from the LSP session; restarting LSP for this buffer" folder)
+      (lsp-deferred))))
+
 (use-package lsp-mode
   :commands (lsp lsp-deferred)
   ;; Per-language hooks
   :hook ((typescript-ts-mode . lsp-deferred)
          (tsx-ts-mode         . lsp-deferred)
          (js-ts-mode          . lsp-deferred)
-         (python-ts-mode      . lsp-deferred)
          (rust-ts-mode        . lsp-deferred)
          (nix-ts-mode         . lsp-deferred)
          (lsp-mode            . lsp-enable-which-key-integration)
@@ -427,6 +478,7 @@ visual artifacts; this helper disables active themes first."
   (setq lsp-completion-provider :none          ; Corfu handles completion
         lsp-idle-delay 0.5
         lsp-keep-workspace-alive nil            ; shut down server with last buffer
+        lsp-enable-snippet nil                  ; no yasnippet in this config
         lsp-headerline-breadcrumb-enable nil    ; handled by mode line / consult-imenu
         lsp-modeline-code-actions-enable nil
         lsp-modeline-diagnostics-enable nil
@@ -449,12 +501,20 @@ visual artifacts; this helper disables active themes first."
 ;; lsp-pyright: integrates the Pyright/basedpyright type checker as a Python LSP.
 ;; basedpyright is a community fork with stricter defaults and additional
 ;; checks; it's the same protocol as pyright, just a different binary.
+(defun mzacuna/lsp-pyright-deferred ()
+  "Load Pyright support and start LSP for the current Python buffer."
+  (require 'lsp-pyright)
+  (lsp-deferred))
+
 (use-package lsp-pyright
   :custom
   (lsp-pyright-langserver-command "basedpyright")
-  :hook (python-ts-mode . (lambda ()
-                            (require 'lsp-pyright)
-                            (lsp-deferred))))
+  :hook (python-ts-mode . mzacuna/lsp-pyright-deferred))
+
+
+;;; -- AI ---
+
+;; (use-package agent-shell)
 
 
 ;;; -- Format-on-save --
@@ -469,18 +529,40 @@ visual artifacts; this helper disables active themes first."
 
 ;;; -- Tree-sitter --
 
+(defun mzacuna/treesit-auto-maybe-install-for-buffer ()
+  "Ask `treesit-auto' about only the current buffer's grammar."
+  (when (treesit-auto--get-mode-recipe)
+    (treesit-auto--maybe-install-grammar)))
+
 ;; treesit-auto: automatically install and use tree-sitter grammars.
 ;; Grammars are compiled on-demand and stored in
 ;; ~/.config/emacs/tree-sitter/.
 (use-package treesit-auto
   :custom
   (treesit-auto-install 'prompt)
+  ;; Each missing grammar is expensive to probe on macOS, so keep automatic
+  ;; tree-sitter handling scoped to languages this config actively uses.
+  (treesit-auto-langs '(bash javascript json nix python rust toml tsx typescript yaml))
   :config
   (treesit-auto-add-to-auto-mode-alist 'all)
-  (global-treesit-auto-mode))
+  ;; Avoid `global-treesit-auto-mode': it advises `set-auto-mode-0' and
+  ;; rebuilds the full tree-sitter remap list on every file open.
+  (add-hook 'after-change-major-mode-hook
+            #'mzacuna/treesit-auto-maybe-install-for-buffer))
 
 
 ;;; -- Language modes --
+
+;; rust-ts-mode's built-in Flymake backend runs rustc against the current file
+;; as a standalone crate, so Cargo dependencies look missing. Use LSP
+;; diagnostics from rust-analyzer instead.
+(defun mzacuna/rust-ts-mode-setup ()
+  "Use rust-analyzer diagnostics instead of single-file `rustc' Flymake checks."
+  (remove-hook 'flymake-diagnostic-functions #'rust-ts-flymake t))
+
+(use-package rust-ts-mode
+  :ensure nil
+  :hook (rust-ts-mode . mzacuna/rust-ts-mode-setup))
 
 ;; Nix major mode using tree-sitter.
 (use-package nix-ts-mode
