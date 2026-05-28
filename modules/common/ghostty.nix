@@ -13,8 +13,8 @@ lib.mkIf config.isPC {
         package = lib.mkIf config.isDarwin null;
         settings = {
           command = "${pkgs.fish}/bin/fish";
-          font-family = "Intel One Mono";
-          font-size = 16;
+          font-family = "Inconsolata Nerd Font";
+          font-size = 22;
           theme = "Catppuccin Mocha";
           background-opacity = 0.90;
           background-blur = config.isDarwin;

@@ -235,9 +235,9 @@ visual artifacts; this helper disables active themes first."
 (use-package emacs
   :ensure nil
   :config
-  (let ((mono "JetBrainsMono Nerd Font")
-        (vari "Charter")
-        (size 180))
+  (let ((mono "Inconsolata Nerd Font")
+        (vari "Inter")
+        (size 220))
     ;; Default face: absolute size, set via frame alist for new frames AND
     ;; via set-face-attribute for the current frame.
     (add-to-list 'default-frame-alist `(font . ,(format "%s-%d" mono (/ size 10))))
@@ -245,7 +245,7 @@ visual artifacts; this helper disables active themes first."
     ;; variable-pitch and fixed-pitch: family-only, with relative height.
     ;; This makes text-scale-adjust scale them proportionally.
     (set-face-attribute 'fixed-pitch    nil :family mono :height 1.0)
-    (set-face-attribute 'variable-pitch nil :family vari :height 1.4444)))
+    (set-face-attribute 'variable-pitch nil :family vari :height 1.1818)))
 
 ;; mixed-pitch reads `fix-height' from the `default' face, which captures
 ;; an absolute integer (e.g. 180). That breaks `text-scale-adjust' in

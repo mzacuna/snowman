@@ -13,6 +13,7 @@ lib.mkIf config.isPC {
         pkgs.noto-fonts-cjk-sans
         pkgs.noto-fonts-color-emoji
         pkgs.aporetic
+        pkgs.nerd-fonts.inconsolata
         pkgs.nerd-fonts.jetbrains-mono
         pkgs.intel-one-mono
         pkgs.inter
