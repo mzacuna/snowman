@@ -15,8 +15,8 @@ lib.mkIf config.isPC {
           command = "${pkgs.fish}/bin/fish";
           font-family = "Inconsolata Nerd Font";
           font-size = 22;
-          theme = "Catppuccin Mocha";
-          background-opacity = 0.90;
+          theme = "Carbonfox";
+          background-opacity = 0.93;
           background-blur = config.isDarwin;
           window-padding-x = 8;
         };
