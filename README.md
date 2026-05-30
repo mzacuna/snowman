@@ -1,19 +1,22 @@
-# Nix config
+# zix-zonfig
 
-My NixOS multi-machine config. I aim for a smooth experience that translates as well as it can between machines, and configuration files that are mostly straightforward, with no major gimmicks or obscure incantations.
+My Nix configuration for multiple machines.
 
-I am not a fan of configuration. Whenever possible, I try not to do it. However, I have found Nix to be a nice approach to organizing and maintaining the configuration needed for computer use, and for improving one's ability to reason about it.
+## Government-mandated table
 
-## Machines
+| Hostname  | OS    | Description               |
+| --------- | ----- | ------------------------- |
+| `acheron` | NixOS | KDE Plasma, entertainment |
+| `tigris`  | NixOS | Has nothing               |
+| `nile`    | macOS | MacBook                   |
 
-### Desktop PC (acheron)
+## Layout
 
-Runs NixOS. I use KDE Plasma.
+```
+flake.nix                         The file of the hour
+lib/                              Custom options and a helper function
+hosts/<host>/                     Per-host settings and hardware configuration
+modules/{common,linux,darwin}/    Respectively: shared, NixOS, nix-darwin
+```
 
-### MacBook (nile)
-
-Runs nix-darwin.
-
-### Laptop (tigris)
-
-Runs NixOS.
+zoz
