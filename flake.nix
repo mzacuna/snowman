@@ -65,7 +65,7 @@
       ...
     }:
     let
-      lib = nixpkgs.lib.extend (import ./lib/util.nix) // home-manager.lib;
+      lib = nixpkgs.lib.extend (import ./lib/util.nix);
 
       forAllSystems = nixpkgs.lib.genAttrs [
         "aarch64-darwin"
