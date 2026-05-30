@@ -25,12 +25,12 @@ in
 
   home-manager.sharedModules = [
     {
-      programs.ssh.matchBlocks = lib.optionalAttrs config.flags.tailnet.ssh.client (
+      programs.ssh.settings = lib.optionalAttrs config.flags.tailnet.ssh.client (
         lib.genAttrs peerHosts (host: {
-          hostname = host;
-          user = username;
-          identityFile = tailnetIdentityFile;
-          identitiesOnly = true;
+          HostName = host;
+          User = username;
+          IdentityFile = tailnetIdentityFile;
+          IdentitiesOnly = true;
         })
       );
     }
