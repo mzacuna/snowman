@@ -17,6 +17,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    claude-code = {
+      url = "github:sadjow/claude-code-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -82,7 +87,10 @@
         (
           { ... }:
           {
-            nixpkgs.overlays = [ inputs.emacs-overlay.overlays.default ];
+            nixpkgs.overlays = [
+              inputs.claude-code.overlays.default
+              inputs.emacs-overlay.overlays.default
+            ];
           }
         )
       ];
