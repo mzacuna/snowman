@@ -40,6 +40,11 @@ in
     username = lib.mkOption { type = lib.types.str; };
     hostname = lib.mkOption { type = lib.types.str; };
 
+    hosts = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+    };
+
     gpu = mkEnum [
       "nvidia"
       "amd"

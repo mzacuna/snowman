@@ -93,6 +93,17 @@
             ];
           }
         )
+
+        (
+          { ... }:
+          {
+            hosts = [
+              "acheron"
+              "nile"
+              "tigris"
+            ];
+          }
+        )
       ];
 
       mkNixos =
