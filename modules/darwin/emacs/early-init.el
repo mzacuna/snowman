@@ -1,32 +1,30 @@
-;;; early-init.el --- Early initialisation -*- lexical-binding: t -*-
+;;; early-init.el --- Early initialization -*- lexical-binding: t -*-
 
 ;;; Commentary:
-;; Runs before init.el, before package and UI initialisation.
+;; Runs before init.el, before package and UI initialization.
 ;; We use this for performance-sensitive settings and to disable package.el
-;; in favour of Elpaca.
+;; in favor of Nix-owned load paths.
 
 ;;; Code:
 
-;; Defer garbage collection during startup; restored after init.
+;; Disable GC during startup, then turn it back on.
 (setq gc-cons-threshold most-positive-fixnum)
 (add-hook 'emacs-startup-hook
           (lambda ()
-            (setq gc-cons-threshold (* 16 1024 1024))))
+            (setq gc-cons-threshold (* 100 1024 1024))))
 
-;; Required for lsp-mode's plist-based deserialisation, which is faster than
-;; the default hash-table approach. Must be set before lsp-mode is compiled.
-;; If you change this, delete and reinstall lsp-mode for it to take effect.
+;; Required for lsp-mode to use plists. It has to be set when it's compiled.
 ;; See: https://emacs-lsp.github.io/lsp-mode/page/performance/
 (setenv "LSP_USE_PLISTS" "true")
 
-;; Prevent package.el loading packages — Elpaca takes over.
+;; Prevent package.el loading packages since Nix provides package load paths.
 (setq package-enable-at-startup nil)
 
 ;; Inhibit frame resizing during startup (avoids visual flicker).
 (setq frame-inhibit-implied-resize t)
 
-;; Disable UI elements before they can be drawn.
-;; Note: we keep the menu bar on macOS since it's native and expected.
+;; Disable UI elements before they can be drawn. Keep the menu bar on darwin
+;; since it's native and expected.
 (setq default-frame-alist
       '((tool-bar-lines . 0)
         (vertical-scroll-bars . nil)

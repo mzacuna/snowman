@@ -2,62 +2,18 @@
 
 ;;; Commentary:
 ;; A clean, vanilla Emacs configuration.
-;; Uses Elpaca for package management.
+;; Uses Nix for package management.
 
 ;;; Code:
 
 
-;;; -- Elpaca bootstrap --
+;;; -- Package declarations --
 
-(defvar elpaca-installer-version 0.12)
-(defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
-(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-(defvar elpaca-sources-directory (expand-file-name "sources/" elpaca-directory))
-(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-                              :ref nil :depth 1 :inherit ignore
-                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
-                              :build (:not elpaca-activate)))
-(let* ((repo  (expand-file-name "elpaca/" elpaca-sources-directory))
-       (build (expand-file-name "elpaca/" elpaca-builds-directory))
-       (order (cdr elpaca-order))
-       (default-directory repo))
-  (add-to-list 'load-path (if (file-exists-p build) build repo))
-  (unless (file-exists-p repo)
-    (make-directory repo t)
-    (when (<= emacs-major-version 28) (require 'subr-x))
-    (condition-case-unless-debug err
-        (if-let* ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
-                  ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
-                                                  ,@(when-let* ((depth (plist-get order :depth)))
-                                                      (list (format "--depth=%d" depth) "--no-single-branch"))
-                                                  ,(plist-get order :repo) ,repo))))
-                  ((zerop (call-process "git" nil buffer t "checkout"
-                                        (or (plist-get order :ref) "--"))))
-                  (emacs (concat invocation-directory invocation-name))
-                  ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
-                                        "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-                  ((require 'elpaca))
-                  ((elpaca-generate-autoloads "elpaca" repo)))
-            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
-          (error "%s" (with-current-buffer buffer (buffer-string))))
-      ((error) (warn "%s" err) (delete-directory repo 'recursive))))
-  (unless (require 'elpaca-autoloads nil t)
-    (require 'elpaca)
-    (elpaca-generate-autoloads "elpaca" repo)
-    (let ((load-source-file-function nil)) (load "./elpaca-autoloads"))))
-(add-hook 'after-init-hook #'elpaca-process-queues)
-(elpaca `(,@elpaca-order))
+(require 'use-package)
+(setq use-package-always-ensure nil)
 
-;; Install use-package integration with Elpaca.
-(elpaca elpaca-use-package
-  ;; Enable :ensure support for Elpaca in use-package.
-  (elpaca-use-package-mode)
-  ;; Make :ensure t the default.
-  (setq use-package-always-ensure t))
-
-
-;;; -- Need newer versions --
-(use-package compat)
+(use-package compat
+  :ensure nil)
 (use-package transient)
 
 
@@ -96,10 +52,6 @@ visual artifacts; this helper disables active themes first."
   ;; LSP servers send large JSON payloads; the default 4 KiB read buffer
   ;; causes many syscalls. 4 MiB is the lsp-mode performance recommendation.
   (setq read-process-output-max (* 4 1024 1024))
-  ;; gc-cons-threshold is restored from `most-positive-fixnum' (set in
-  ;; early-init.el) to a saner value here. lsp-mode performance docs
-  ;; recommend 100 MiB or higher for LSP work.
-  (setq gc-cons-threshold (* 100 1024 1024))
 
   :custom
   ;; TAB does indent-or-complete based on context. Required for Corfu.
@@ -286,9 +238,8 @@ visual artifacts; this helper disables active themes first."
 (use-package vertico
   :custom
   (vertico-cycle t)
-  :init
-  (vertico-mode 1)
   :config
+  (vertico-mode 1)
   ;; Built into Emacs 31; advice needed in 30 to show the CRM separator
   ;; visibly when reading multiple candidates.
   (when (< emacs-major-version 31)
@@ -307,9 +258,10 @@ visual artifacts; this helper disables active themes first."
 
 ;; Marginalia: rich annotations in the minibuffer.
 (use-package marginalia
+  :demand t
   :bind (:map minibuffer-local-map
               ("M-A" . marginalia-cycle))
-  :init
+  :config
   (marginalia-mode 1))
 
 ;; Consult: enhanced commands built on completing-read.
@@ -340,6 +292,7 @@ visual artifacts; this helper disables active themes first."
 
 ;; Corfu: popup completion-at-point UI.
 (use-package corfu
+  :demand t
   :custom
   (corfu-auto t)
   (corfu-auto-delay 0.2)
@@ -350,7 +303,8 @@ visual artifacts; this helper disables active themes first."
   :hook
   ;; Documentation popup for the currently-highlighted completion candidate.
   (corfu-mode . corfu-popupinfo-mode)
-  :init
+  :config
+  (require 'corfu-popupinfo)
   (global-corfu-mode 1))
 
 ;; Cape: additional completion-at-point backends.
@@ -375,6 +329,15 @@ visual artifacts; this helper disables active themes first."
 
 (use-package magit
   :bind ("C-c g" . magit-status))
+
+
+;;; -- Terminal --
+
+(use-package ghostel
+  :ensure nil
+  :commands (ghostel ghostel-project ghostel-other)
+  :custom
+  (ghostel-module-auto-install nil))
 
 
 ;;; -- LSP --
@@ -512,11 +475,6 @@ root, but the current buffer belongs to a nested project."
   :hook (python-ts-mode . mzacuna/lsp-pyright-deferred))
 
 
-;;; -- AI ---
-
-;; (use-package agent-shell)
-
-
 ;;; -- Format-on-save --
 
 ;; Apheleia: asynchronous code formatting on save. Doesn't block Emacs while
@@ -588,6 +546,7 @@ root, but the current buffer belongs to a nested project."
 
 ;; Spell-checking. Jinx is a fast, modern replacement for flyspell.
 (use-package jinx
+  :ensure nil
   :bind (("C-c s c" . jinx-correct)
          ("C-c s l" . jinx-languages)
          ("C-c s d" . mzacuna/jinx-save-word-dir-local)
