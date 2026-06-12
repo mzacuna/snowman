@@ -39,8 +39,6 @@ lib.mkIf config.flags.profiles.development {
         package = pkgs.claude-code;
       };
 
-      home.packages = [ pkgs.claude-agent-acp ];
-
       home.activation.claudeCodeSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         _path="${settingsPath}"
         _declared=${lib.escapeShellArg (builtins.toJSON settings)}
