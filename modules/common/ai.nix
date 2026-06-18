@@ -5,7 +5,8 @@
   ...
 }:
 
-lib.mkIf config.flags.profiles.development {
+# TODO: maybe add another flag instead of this hack
+lib.mkIf (config.flags.profiles.development || config.hostname == "acheron") {
   home-manager.users.${username} =
     {
       config,
