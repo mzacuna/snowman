@@ -108,14 +108,31 @@ mkMerge [
           ''cp -f ${
             pkgs.writeText "${domain}.plist" (toPlist { escape = true; } prefs)
           } "${managedDir}/${domain}.plist"'';
+
+        applyPolicies = pkgs.writeShellScript "helium-managed-prefs" ''
+          mkdir -p "${managedDir}"
+          ${managedPrefs |> mapAttrsToList copyPlist |> concatStringsSep "\n"}
+          killall cfprefsd 2>/dev/null || true
+        '';
       in
       {
         homebrew.casks = singleton "helium-browser";
 
-        # Relaunch Helium or killall cfprefsd to pick up changes.
+        launchd.daemons.helium-managed-prefs.serviceConfig = {
+          RunAtLoad = true;
+          StandardErrorPath = "/var/log/helium-managed-prefs.log";
+          ProgramArguments = [
+            "/bin/sh"
+            "-c"
+            "/bin/wait4path /nix/store && exec ${applyPolicies}"
+          ];
+        };
+
         system.activationScripts.postActivation.text = mkAfter ''
-          mkdir -p "${managedDir}"
-          ${managedPrefs |> mapAttrsToList copyPlist |> concatStringsSep "\n"}
+          consoleUser="$(/usr/bin/stat -f%Su /dev/console)"
+          if [ -n "$consoleUser" ] && [ "$consoleUser" != "root" ]; then
+            /usr/bin/sudo -u "$consoleUser" ${getExe pkgs.defaultbrowser} helium
+          fi
         '';
 
         home-manager.users.${username} =
