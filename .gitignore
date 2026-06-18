@@ -16,3 +16,5 @@
 !*/
 
 /private/
+/.agent-work/
+/.claude/settings.local.json
