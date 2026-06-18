@@ -56,6 +56,7 @@ lib.mkIf config.flags.profiles.interactive {
       ".Spotlight-V100"
       ".Trashes"
       ".agent-work/"
+      ".claude/settings.local.json"
     ];
   };
 }
