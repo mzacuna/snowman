@@ -55,7 +55,7 @@ lib.mkIf config.flags.profiles.interactive {
       "Thumbs.db"
       ".Spotlight-V100"
       ".Trashes"
-      "AGENT_README.md"
+      ".agent-work/"
     ];
   };
 }
