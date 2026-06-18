@@ -161,7 +161,7 @@ mkMerge [
               packages = singleton helium;
 
               activation.heliumPreferences = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-                seedPreferences ".config/helium/Default/Preferences"
+                seedPreferences ".config/${bundleId}/Default/Preferences"
               );
 
               sessionVariables = {
