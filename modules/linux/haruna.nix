@@ -6,6 +6,7 @@
 }:
 
 let
+  inherit (lib.lists) singleton;
   inherit (lib.meta) getExe';
   inherit (lib.modules) mkIf;
   inherit (lib.strings) concatStringsSep;
@@ -15,7 +16,7 @@ mkIf config.flags.profiles.graphical {
     { lib, pkgs, ... }:
     {
       home = {
-        packages = [ pkgs.haruna ]; # Media player
+        packages = singleton pkgs.haruna;
 
         # Merge defaults into mimeapps.list
         activation.harunaMimeDefaults =
