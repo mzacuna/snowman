@@ -41,6 +41,27 @@ let
     ];
   };
 
+  # Force-installed via ExtensionInstallForcelist on Linux. On darwin
+  # we have to install them by hand, because force-installing them
+  # there is a trap. darwin reads Chrome policy from /Library/Managed
+  # Preferences, a directory it rebuilds at login from configuration
+  # profiles. Since we don't "ship" any profile, the plist left there
+  # isn't in effect when Helium starts after a cold boot, and Chromium
+  # uninstalls a force-installed extension whose policy it can't see,
+  # obliterating its data. If you install it by hand, an extension
+  # belongs to the profile instead of the policy, so this ceases to be
+  # a problem.
+  #
+  # Linux reads the policy straight from a file in /etc, so it's
+  # always there.
+  forcelistExtensions = [
+    "mnjggcdmjocbbbhaepdhchncahnbgone" # SponsorBlock
+    "jinjaccalgkegednnccohejagnlnfdag" # Violentmonkey
+    "eimadpbcbfnmbkopoojfekhnkhdbieeh" # Dark Reader
+    "nngceckbapebfimnlniiiahkandclblb" # Bitwarden
+    "cdglnehniifkbagbbombnjghhcihifij" # Kagi Search
+  ];
+
   policy = {
     DefaultBrowserSettingEnabled = false; # Don't prompt to set as default.
     BatterySaverModeAvailability = 0; # Never throttle background tabs.
@@ -51,15 +72,6 @@ let
     DefaultSearchProviderSearchURL = "https://kagi.com/search?q={searchTerms}";
     DefaultSearchProviderSuggestURL = "https://kagi.com/api/autosuggest?q={searchTerms}";
     SearchSuggestEnabled = true;
-
-    # Force-installed extensions (uBO is bundled by Helium).
-    ExtensionInstallForcelist = [
-      "mnjggcdmjocbbbhaepdhchncahnbgone" # SponsorBlock
-      "jinjaccalgkegednnccohejagnlnfdag" # Violentmonkey
-      "eimadpbcbfnmbkopoojfekhnkhdbieeh" # Dark Reader
-      "nngceckbapebfimnlniiiahkandclblb" # Bitwarden
-      "cdglnehniifkbagbbombnjghhcihifij" # Kagi Search
-    ];
 
     "3rdparty".extensions.${ublockId} = ublock;
   };
@@ -148,9 +160,12 @@ mkMerge [
     mkIf config.flags.profiles.graphical (
       let
         helium = inputs.helium.packages.${system}.default;
+        linuxPolicy = policy // {
+          ExtensionInstallForcelist = forcelistExtensions;
+        };
       in
       {
-        environment.etc."chromium/policies/managed/policies.json".text = toJSON policy;
+        environment.etc."chromium/policies/managed/policies.json".text = toJSON linuxPolicy;
 
         home-manager.users.${username} =
           { lib, ... }:
