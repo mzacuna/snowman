@@ -9,7 +9,13 @@
 }:
 
 let
-  inherit (lib.attrsets) optionalAttrs;
+  inherit (lib.attrsets)
+    mapAttrs'
+    mapAttrsToList
+    nameValuePair
+    optionalAttrs
+    ;
+  inherit (lib.generators) toPlist;
   inherit (lib.lists) singleton;
   inherit (lib.meta) getExe getExe';
   inherit (lib.modules) mkAfter mkIf mkMerge;
@@ -19,6 +25,44 @@ let
   isLinux = hasSuffix "-linux" system;
 
   bundleId = "net.imput.helium";
+
+  ublockId = "blockjmkbacgjkknlgpkjjiijinjdanf";
+  ublock = {
+    toOverwrite.filters = [
+      # Shorts open in the normal /watch player.
+      ''||youtube.com/shorts/$document,uritransform=/^https:\/\/(?:www\.|m\.)?youtube\.com\/shorts\/([^\/?#]+)/https:\/\/www.youtube.com\/watch?v=$1/''
+    ];
+
+    userSettings = [
+      [
+        "userFiltersTrusted"
+        "true"
+      ]
+    ];
+  };
+
+  policy = {
+    DefaultBrowserSettingEnabled = false; # Don't prompt to set as default.
+    BatterySaverModeAvailability = 0; # Never throttle background tabs.
+    DeveloperToolsAvailability = 1; # Always allow devtools.
+
+    DefaultSearchProviderEnabled = true;
+    DefaultSearchProviderName = "Kagi";
+    DefaultSearchProviderSearchURL = "https://kagi.com/search?q={searchTerms}";
+    DefaultSearchProviderSuggestURL = "https://kagi.com/api/autosuggest?q={searchTerms}";
+    SearchSuggestEnabled = true;
+
+    # Force-installed extensions (uBO is bundled by Helium).
+    ExtensionInstallForcelist = [
+      "mnjggcdmjocbbbhaepdhchncahnbgone" # SponsorBlock
+      "jinjaccalgkegednnccohejagnlnfdag" # Violentmonkey
+      "eimadpbcbfnmbkopoojfekhnkhdbieeh" # Dark Reader
+      "nngceckbapebfimnlniiiahkandclblb" # Bitwarden
+      "cdglnehniifkbagbbombnjghhcihifij" # Kagi Search
+    ];
+
+    "3rdparty".extensions.${ublockId} = ublock;
+  };
 
   preferences = {
     helium.completed_onboarding = true;
@@ -43,69 +87,66 @@ let
   '';
 in
 mkMerge [
-  # The subset of declarative macOS config I managed to get to work reliably.
   (optionalAttrs isDarwin (
-    mkIf config.flags.profiles.graphical {
-      homebrew.casks = singleton "helium-browser";
+    mkIf config.flags.profiles.graphical (
+      let
+        managedDir = "/Library/Managed Preferences";
 
-      system.activationScripts.postActivation.text = mkAfter ''
-        consoleUser="$(/usr/bin/stat -f%Su /dev/console)"
-        if [ -n "$consoleUser" ] && [ "$consoleUser" != "root" ]; then
-          /usr/bin/sudo -u "$consoleUser" ${getExe pkgs.defaultbrowser} helium
-        fi
-      '';
+        managedPrefs = {
+          ${bundleId} = policy;
+        }
+        // (
+          policy."3rdparty".extensions
+          |> mapAttrs' (id: prefs: nameValuePair "${bundleId}.extensions.${id}" prefs)
+        );
 
-      home-manager.users.${username} =
-        { lib, ... }:
-        {
-          home.activation.heliumPreferences = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-            seedPreferences "Library/Application Support/${bundleId}/Default/Preferences"
-          );
+        # Build a domain's plist in the store, and the cp line that installs it.
+        copyPlist =
+          domain: prefs:
+          ''cp -f ${
+            pkgs.writeText "${domain}.plist" (toPlist { escape = true; } prefs)
+          } "${managedDir}/${domain}.plist"'';
+
+        applyPolicies = pkgs.writeShellScript "helium-managed-prefs" ''
+          set -eu
+          mkdir -p "${managedDir}"
+          ${managedPrefs |> mapAttrsToList copyPlist |> concatStringsSep "\n"}
+        '';
+      in
+      {
+        homebrew.casks = singleton "helium-browser";
+
+        launchd.daemons.helium-managed-prefs.serviceConfig = {
+          RunAtLoad = true;
+          StandardErrorPath = "/var/log/helium-managed-prefs.log";
+          ProgramArguments = [
+            "/bin/sh"
+            "-c"
+            "/bin/wait4path /nix/store && exec ${applyPolicies}"
+          ];
         };
-    }
+
+        system.activationScripts.postActivation.text = mkAfter ''
+          consoleUser="$(/usr/bin/stat -f%Su /dev/console)"
+          if [ -n "$consoleUser" ] && [ "$consoleUser" != "root" ]; then
+            /usr/bin/sudo -u "$consoleUser" ${getExe pkgs.defaultbrowser} helium
+          fi
+        '';
+
+        home-manager.users.${username} =
+          { lib, ... }:
+          {
+            home.activation.heliumPreferences = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+              seedPreferences "Library/Application Support/${bundleId}/Default/Preferences"
+            );
+          };
+      }
+    )
   ))
 
   (optionalAttrs isLinux (
     mkIf config.flags.profiles.graphical (
       let
-        ublockId = "blockjmkbacgjkknlgpkjjiijinjdanf";
-        ublock = {
-          toOverwrite.filters = [
-            # Shorts open in the normal /watch player.
-            ''||youtube.com/shorts/$document,uritransform=/^https:\/\/(?:www\.|m\.)?youtube\.com\/shorts\/([^\/?#]+)/https:\/\/www.youtube.com\/watch?v=$1/''
-          ];
-
-          userSettings = [
-            [
-              "userFiltersTrusted"
-              "true"
-            ]
-          ];
-        };
-
-        policy = {
-          DefaultBrowserSettingEnabled = false; # Don't prompt to set as default.
-          BatterySaverModeAvailability = 0; # Never throttle background tabs.
-          DeveloperToolsAvailability = 1; # Always allow devtools.
-
-          DefaultSearchProviderEnabled = true;
-          DefaultSearchProviderName = "Kagi";
-          DefaultSearchProviderSearchURL = "https://kagi.com/search?q={searchTerms}";
-          DefaultSearchProviderSuggestURL = "https://kagi.com/api/autosuggest?q={searchTerms}";
-          SearchSuggestEnabled = true;
-
-          # Force-installed extensions (uBO is bundled by Helium).
-          ExtensionInstallForcelist = [
-            "mnjggcdmjocbbbhaepdhchncahnbgone" # SponsorBlock
-            "jinjaccalgkegednnccohejagnlnfdag" # Violentmonkey
-            "eimadpbcbfnmbkopoojfekhnkhdbieeh" # Dark Reader
-            "nngceckbapebfimnlniiiahkandclblb" # Bitwarden
-            "cdglnehniifkbagbbombnjghhcihifij" # Kagi Search
-          ];
-
-          "3rdparty".extensions.${ublockId} = ublock;
-        };
-
         helium = inputs.helium.packages.${system}.default;
       in
       {
