@@ -14,6 +14,9 @@ mkIf config.flags.profiles.gaming {
   environment.systemPackages = [
     pkgs.lutris
 
-    (pkgs.retroarch.withCores (cores: [ cores.snes9x ]))
+    (pkgs.retroarch.withCores (cores: [
+      cores.fceumm
+      cores.snes9x
+    ]))
   ];
 }
