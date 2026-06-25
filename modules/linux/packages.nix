@@ -18,6 +18,7 @@
       # Media and graphics
       pkgs.obs-studio # Recording/streaming
       pkgs.gimp3-with-plugins # Graphics editor
+      pkgs.krita # Art graphics editor
 
       # Downloading and torrenting
       pkgs.qbittorrent # Torrent client
