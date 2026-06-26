@@ -17,6 +17,7 @@ mkIf config.flags.profiles.gaming {
     (pkgs.retroarch.withCores (cores: [
       cores.fceumm
       cores.snes9x
+      cores.mupen64plus
     ]))
   ];
 }
