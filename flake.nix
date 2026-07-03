@@ -49,11 +49,6 @@
       flake = false;
     };
 
-    agenix = {
-      url = "github:ryantm/agenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     emacs-overlay = {
       url = "github:nix-community/emacs-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -144,8 +139,6 @@
           modules = sharedModules host ++ [
             ./modules/linux
             inputs.home-manager.nixosModules.home-manager
-
-            inputs.agenix.nixosModules.default
           ];
         };
 
@@ -162,7 +155,6 @@
             ./modules/darwin
             home-manager.darwinModules.home-manager
             nix-homebrew.darwinModules.nix-homebrew
-            inputs.agenix.darwinModules.default
           ];
         };
     in
