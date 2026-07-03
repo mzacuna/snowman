@@ -1,20 +1,18 @@
-*
+# *
 
-!*.nix
-!*.age
-!*.json
-!*.nu
-!*.el
+# !*.nix
+# !*.age
+# !*.json
+# !*.nu
+# !*.el
 
-!README.md
+# !README.md
 
-!flake.lock
+# !flake.lock
 
-!LICENSE
-!.gitignore
+# !LICENSE
+# !.gitignore
 
-!*/
+# !*/
 
-/private/
-/.agent-work/
-/.claude/settings.local.json
+# /.claude/settings.local.json
