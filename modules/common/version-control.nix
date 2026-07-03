@@ -62,7 +62,6 @@ lib.mkIf config.flags.profiles.interactive {
         "Thumbs.db"
         ".Spotlight-V100"
         ".Trashes"
-        ".agent-work/"
         ".claude/settings.local.json"
       ];
     };
