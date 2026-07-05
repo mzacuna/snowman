@@ -1,8 +1,9 @@
 ;;; init.el --- Emacs configuration -*- lexical-binding: t -*-
 
 ;;; Commentary:
-;; A clean, vanilla Emacs configuration.
-;; Uses Nix for package management.
+;; A clean, vanilla Emacs configuration, shared by darwin and Linux.
+;; Uses Nix for package management; platform-specific behavior is
+;; guarded with `system-type' checks.
 
 ;;; Code:
 
@@ -80,11 +81,6 @@ visual artifacts; this helper disables active themes first."
         initial-scratch-message nil
         initial-major-mode 'fundamental-mode
         ring-bell-function #'ignore)
-
-  ;; Scrolling
-  ;; (setq scroll-conservatively 101
-  ;;       scroll-margin 3)
-  ;; (pixel-scroll-precision-mode 1)
 
   ;; Visuals
   (setq-default truncate-lines t
@@ -216,7 +212,7 @@ visual artifacts; this helper disables active themes first."
     (apply orig-fn args)))
 
 (use-package mixed-pitch
-  :hook (text-mode . mixed-pitch-mode)
+  :commands mixed-pitch-mode
   :custom
   (mixed-pitch-set-height t)
   :config
@@ -230,6 +226,12 @@ visual artifacts; this helper disables active themes first."
 (use-package hl-line
   :ensure nil
   :hook (prog-mode . hl-line-mode))
+
+(use-package display-line-numbers
+  :ensure nil
+  :hook ((prog-mode conf-mode) . display-line-numbers-mode)
+  :custom
+  (display-line-numbers-width-start t))
 
 
 ;;; -- Minibuffer completion --
@@ -250,13 +252,13 @@ visual artifacts; this helper disables active themes first."
                                 (car args))
                         (cdr args))))))
 
-;; Orderless: space-separated completion components, in any order.
+;; Space-separated completion completion style, in any order.
 (use-package orderless
   :custom
   (completion-styles '(orderless basic))
   (completion-category-overrides '((file (styles basic partial-completion)))))
 
-;; Marginalia: rich annotations in the minibuffer.
+;; Rich annotations in the minibuffer.
 (use-package marginalia
   :demand t
   :bind (:map minibuffer-local-map
@@ -264,7 +266,7 @@ visual artifacts; this helper disables active themes first."
   :config
   (marginalia-mode 1))
 
-;; Consult: enhanced commands built on completing-read.
+;; Enhanced commands.
 (use-package consult
   :bind (("C-x b"   . consult-buffer)
          ("C-x 4 b" . consult-buffer-other-window)
@@ -273,43 +275,44 @@ visual artifacts; this helper disables active themes first."
          ("M-s r"   . consult-ripgrep)
          ("M-s l"   . consult-line)))
 
-;; Embark: act on whatever is at point or in the minibuffer.
+;; Act on whatever is at point or in the minibuffer.
 (use-package embark
   :bind (("C-."   . embark-act)
          ("C-;"   . embark-dwim)
          ("C-h B" . embark-bindings)))
 
-;; Bridge between embark and consult, e.g., for editing search results.
+;; Bridge between embark and consult.
 (use-package embark-consult
   :after (embark consult)
   :hook (embark-collect-mode . consult-preview-at-point-mode))
 
-;; wgrep: edit consult-ripgrep results in place; save to apply to all files.
+;; Edit consult-ripgrep results in place.
 (use-package wgrep)
 
 
 ;;; -- In-buffer completion --
 
-;; Corfu: popup completion-at-point UI.
+;; Popup completion-at-point UI.
 (use-package corfu
   :demand t
   :custom
   (corfu-auto t)
   (corfu-auto-delay 0.2)
   (corfu-cycle t)
-  ;; Permissive: don't close the popup when there's no match, just on
-  ;; the separator. Gives more time to backspace and try again.
+  ;; Don't close the popup when there's no match, just on the separator.
+  ;; Gives more time to backspace and try again.
   (corfu-quit-no-match 'separator)
   :hook
-  ;; Documentation popup for the currently-highlighted completion candidate.
+  ;; Documentation popup for the currently-highlighted completion
+  ;; candidate.
   (corfu-mode . corfu-popupinfo-mode)
   :config
   (require 'corfu-popupinfo)
   (global-corfu-mode 1))
 
-;; Cape: additional completion-at-point backends.
-;; cape-capf-buster is used in the lsp-mode setup below to keep completion
-;; candidates consistent when the prefix changes mid-symbol.
+;; Additional completion-at-point backends. cape-capf-buster is used in
+;; the lsp-mode setup below to keep completion candidates consistent
+;; when the prefix changes mid-symbol.
 (use-package cape
   :config
   (add-hook 'completion-at-point-functions #'cape-dabbrev)
@@ -318,7 +321,6 @@ visual artifacts; this helper disables active themes first."
 
 ;;; -- Keybinding discoverability --
 
-;; which-key is built into Emacs 30. No need to install.
 (use-package which-key
   :ensure nil
   :config
@@ -342,9 +344,9 @@ visual artifacts; this helper disables active themes first."
 
 ;;; -- LSP --
 
-;; emacs-lsp-booster must be installed and on PATH.
-;; It wraps LSP server processes to handle JSON parsing off the Emacs thread,
-;; and requires lsp-use-plists=t (set via LSP_USE_PLISTS in early-init.el).
+;; emacs-lsp-booster must be installed and on PATH. It wraps LSP server
+;; processes to handle JSON parsing off the Emacs thread, and requires
+;; lsp-use-plists=t (set via LSP_USE_PLISTS in early-init.el).
 (defun lsp-booster--advice-json-parse (old-fn &rest args)
   "Try to parse bytecode instead of json."
   (or (when (equal (following-char) ?#)
@@ -409,7 +411,7 @@ root, but the current buffer belongs to a nested project."
 
 (use-package lsp-mode
   :commands (lsp lsp-deferred)
-  ;; Per-language hooks
+  ;; Per-language hooks.
   :hook ((typescript-ts-mode . lsp-deferred)
          (tsx-ts-mode         . lsp-deferred)
          (js-ts-mode          . lsp-deferred)
@@ -420,7 +422,7 @@ root, but the current buffer belongs to a nested project."
   :init
   (setq lsp-keymap-prefix "C-c l"
         lsp-use-plists t)
-  ;; Wire up lsp-booster. The advice functions are no-ops if the
+  ;; Wire up lsp-booster. The advice functions don't do anything if the
   ;; emacs-lsp-booster binary is not found on PATH.
   (advice-add (if (progn (require 'json) (fboundp 'json-parse-buffer))
                   'json-parse-buffer
@@ -451,7 +453,7 @@ root, but the current buffer belongs to a nested project."
         ;; higher and would otherwise win. Harmless if nil isn't installed.
         lsp-disabled-clients '((nix-ts-mode . nix-nil))))
 
-;; lsp-ui: sideline diagnostics, hover docs, peek definitions.
+;; Sideline diagnostics, hover docs, peek definitions.
 (use-package lsp-ui
   :after lsp-mode
   :config
@@ -461,9 +463,6 @@ root, but the current buffer belongs to a nested project."
         lsp-ui-doc-enable t
         lsp-ui-doc-position 'at-point))
 
-;; lsp-pyright: integrates the Pyright/basedpyright type checker as a Python LSP.
-;; basedpyright is a community fork with stricter defaults and additional
-;; checks; it's the same protocol as pyright, just a different binary.
 (defun mzacuna/lsp-pyright-deferred ()
   "Load Pyright support and start LSP for the current Python buffer."
   (require 'lsp-pyright)
@@ -477,9 +476,7 @@ root, but the current buffer belongs to a nested project."
 
 ;;; -- Format-on-save --
 
-;; Apheleia: asynchronous code formatting on save. Doesn't block Emacs while
-;; the formatter runs. Handles Prettier (TS/JS), Black/Ruff (Python),
-;; rustfmt (Rust), nixfmt (Nix), gofmt (Go), and many others uniformly.
+;; Asynchronous code formatting on save.
 (use-package apheleia
   :config
   (apheleia-global-mode 1))
@@ -492,14 +489,12 @@ root, but the current buffer belongs to a nested project."
   (when (treesit-auto--get-mode-recipe)
     (treesit-auto--maybe-install-grammar)))
 
-;; treesit-auto: automatically install and use tree-sitter grammars.
-;; Grammars are compiled on-demand and stored in
-;; ~/.config/emacs/tree-sitter/.
+;; Automatically install and use tree-sitter grammars.
 (use-package treesit-auto
   :custom
   (treesit-auto-install 'prompt)
   ;; Each missing grammar is expensive to probe on macOS, so keep automatic
-  ;; tree-sitter handling scoped to languages this config actively uses.
+  ;; tree-sitter handling scoped to languages we use.
   (treesit-auto-langs '(bash javascript json nix python rust toml tsx typescript yaml))
   :config
   (treesit-auto-add-to-auto-mode-alist 'all)
@@ -522,11 +517,9 @@ root, but the current buffer belongs to a nested project."
   :ensure nil
   :hook (rust-ts-mode . mzacuna/rust-ts-mode-setup))
 
-;; Nix major mode using tree-sitter.
 (use-package nix-ts-mode
   :mode "\\.nix\\'")
 
-;; Markdown
 (use-package markdown-mode
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'"        . markdown-mode)
@@ -538,13 +531,20 @@ root, but the current buffer belongs to a nested project."
 
 ;;; -- Writing --
 
-;; Distraction-free writing with centered, soft-wrapped text.
+;; Centered, soft-wrapped text for writing.
 (use-package olivetti
-  :hook (text-mode . olivetti-mode)
+  :commands olivetti-mode
   :config
   (setq olivetti-body-width 74))
 
-;; Spell-checking. Jinx is a fast, modern replacement for flyspell.
+(use-package emacs
+  :ensure nil
+  :config
+  (dolist (hook '(markdown-mode-hook gfm-mode-hook org-mode-hook rst-mode-hook))
+    (add-hook hook #'mixed-pitch-mode)
+    (add-hook hook #'olivetti-mode)))
+
+;; Spell-checking.
 (use-package jinx
   :ensure nil
   :bind (("C-c s c" . jinx-correct)
@@ -555,7 +555,7 @@ root, but the current buffer belongs to a nested project."
   :custom
   (jinx-languages "en_US es_MX")
   :config
-  ;; Helper function
+  ;; Helper function.
   (defun mzacuna/jinx--act-on-word (action-fn success-message)
     "Extract Jinx word, check validity, and execute ACTION-FN."
     (if-let* ((bounds (jinx--bounds-of-word))
@@ -571,7 +571,7 @@ root, but the current buffer belongs to a nested project."
             (message success-message word)))
       (user-error "No word found at point.")))
 
-  ;; Directory-local save
+  ;; Directory-local save.
   (defun mzacuna/jinx-save-word-dir-local ()
     "Save Jinx word at point to directory-local variables if misspelled."
     (interactive)
@@ -585,7 +585,7 @@ root, but the current buffer belongs to a nested project."
            (with-current-buffer buf (save-buffer)))))
      "Added '%s' to directory-local Jinx words!"))
 
-  ;; Personal dictionary save
+  ;; Personal dictionary save.
   (defun mzacuna/jinx-save-word-personal ()
     "Save Jinx word at point to the primary personal dictionary if misspelled."
     (interactive)
