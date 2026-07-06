@@ -16,9 +16,7 @@ let
     HOMEBREW_NO_UPDATE_REPORT_NEW = "1";
   };
 
-  trustedTaps = [
-    "jimeh/homebrew-emacs-builds"
-  ];
+  trustedTaps = [ "jimeh/homebrew-emacs-builds" ];
 
   mkTap =
     name:
