@@ -23,7 +23,6 @@
   ++ lib.optionals config.flags.profiles.interactive [
     pkgs.ffmpeg
     pkgs.yt-dlp
-    pkgs.ragenix
   ]
   ++ lib.optionals config.flags.profiles.development [
     pkgs.tokei # Code counter
