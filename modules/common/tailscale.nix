@@ -36,12 +36,16 @@ in
 
   users.users.${username}.openssh.authorizedKeys.keys = optionals flags.tailnet.ssh.target peerKeys;
 
-  home-manager.users.${username}.programs.ssh.settings =
-    genAttrs peerHosts (host: {
-      HostName = host;
-      User = username;
-      IdentityFile = tailnetIdentityFile;
-      IdentitiesOnly = true;
-    })
-    |> optionalAttrs flags.tailnet.ssh.client;
+  home-manager.users.${username} = {
+    home.packages = optionals flags.tailnet.ssh.client [ pkgs.mosh ];
+
+    programs.ssh.settings =
+      genAttrs peerHosts (host: {
+        HostName = host;
+        User = username;
+        IdentityFile = tailnetIdentityFile;
+        IdentitiesOnly = true;
+      })
+      |> optionalAttrs flags.tailnet.ssh.client;
+  };
 }
