@@ -12,6 +12,7 @@ let
   inherit (lib.strings) escapeShellArg toJSON;
 
   linuxGraphical = config.flags.system.linux && config.flags.profiles.graphical;
+  claude = pkgs.claude-code;
   t3code = pkgs.t3code.override { enableCodex = false; };
 in
 lib.mkIf config.flags.profiles.ai {
@@ -23,29 +24,32 @@ lib.mkIf config.flags.profiles.ai {
       ...
     }:
     let
-      # Managed settings for Claude Code's settings.json. Changes to these
-      # keys are overwritten on rebuild. Keys not listed here are left
-      # untouched, so new keys persist across rebuilds.
+      # Managed settings for Claude Code's settings.json. Changes to
+      # these keys are overwritten on rebuild. Keys not listed here are
+      # left untouched, so new keys persist across rebuilds.
       settings = {
         model = "opus";
         effortLevel = "xhigh";
         theme = "auto";
         alwaysThinkingEnabled = true;
+        # Transcripts are deleted after this many days.
+        cleanupPeriodDays = 3650;
         attribution = {
           commit = "";
           pr = "";
         };
-        includeCoAuthoredBy = false; # deprecated
+        includeCoAuthoredBy = false; # Deprecated.
       };
 
-      settingsPath = "${config.programs.claude-code.configDir}/settings.json";
+      settingsDir = "${config.home.homeDirectory}/.config/claude";
+      settingsJSONPath = "${settingsDir}/settings.json";
     in
     {
       programs.codex.enable = true;
 
       programs.claude-code = {
         enable = true;
-        package = pkgs.claude-code;
+        package = claude;
       };
 
       home = {
@@ -54,15 +58,17 @@ lib.mkIf config.flags.profiles.ai {
           pkgs.pi-coding-agent
         ];
         # ++ optionals linuxGraphical [ t3code ];
-        # You could install T3 Code... when it gets stuff like being
-        # able to increase the font size. I can't see!
+
+        sessionVariables.CLAUDE_CONFIG_DIR = settingsDir;
+
+        shellAliases.claude2 = "CLAUDE_CONFIG_DIR=\"$XDG_CONFIG_HOME/claude-personal\" ${getExe claude}";
 
         activation.claudeCodeSettings =
           let
             jq = getExe pkgs.jq;
           in
           lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-            _path="${settingsPath}"
+            _path="${settingsJSONPath}"
             _declared=${escapeShellArg (toJSON settings)}
 
             # A regular file may hold keys Claude added itself — keep them. A
