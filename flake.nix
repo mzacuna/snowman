@@ -77,6 +77,14 @@
         "x86_64-linux"
       ];
 
+      hosts = {
+        acheron = "nixos";
+        tigris = "nixos";
+        nile = "darwin";
+      };
+
+      hostsFor = os: hosts |> lib.filterAttrs (_: hostOs: hostOs == os) |> lib.attrNames;
+
       specialArgsFor =
         {
           host,
@@ -118,11 +126,7 @@
         (
           { ... }:
           {
-            hosts = [
-              "acheron"
-              "nile"
-              "tigris"
-            ];
+            hosts = lib.attrNames hosts;
           }
         )
       ];
@@ -159,14 +163,9 @@
         };
     in
     {
-      nixosConfigurations = {
-        acheron = mkNixos { host = "acheron"; };
-        tigris = mkNixos { host = "tigris"; };
-      };
+      nixosConfigurations = lib.genAttrs (hostsFor "nixos") (host: mkNixos { inherit host; });
 
-      darwinConfigurations = {
-        nile = mkDarwin { host = "nile"; };
-      };
+      darwinConfigurations = lib.genAttrs (hostsFor "darwin") (host: mkDarwin { inherit host; });
 
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
     };
