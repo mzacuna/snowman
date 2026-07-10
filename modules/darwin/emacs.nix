@@ -59,7 +59,11 @@ let
     {
       ghostel = prev.ghostel.overrideAttrs (old: {
         preBuild = ''
-          install ${ghostelModule}/lib/libghostel-module${pkgs.stdenv.hostPlatform.extensions.sharedLibrary} \
+          module=${ghostelModule}/ghostel-module${pkgs.stdenv.hostPlatform.extensions.sharedLibrary}
+          if [[ ! -e "$module" ]]; then
+            module=${ghostelModule}/lib/libghostel-module${pkgs.stdenv.hostPlatform.extensions.sharedLibrary}
+          fi
+          install "$module" \
             ghostel-module${pkgs.stdenv.hostPlatform.extensions.sharedLibrary}
         '';
 
