@@ -12,7 +12,7 @@ let
   inherit (lib.strings) escapeShellArg toJSON;
 
   linuxGraphical = config.flags.system.linux && config.flags.profiles.graphical;
-  claude = pkgs.claude-code;
+  claude = pkgs.llm-agents.claude-code;
   t3code = pkgs.t3code.override { enableCodex = false; };
 in
 lib.mkIf config.flags.profiles.ai {
@@ -45,7 +45,10 @@ lib.mkIf config.flags.profiles.ai {
       settingsJSONPath = "${settingsDir}/settings.json";
     in
     {
-      programs.codex.enable = true;
+      programs.codex = {
+        enable = true;
+        package = pkgs.llm-agents.codex;
+      };
 
       programs.claude-code = {
         enable = true;
@@ -54,8 +57,8 @@ lib.mkIf config.flags.profiles.ai {
 
       home = {
         packages = [
-          pkgs.opencode
-          pkgs.pi-coding-agent
+          pkgs.llm-agents.opencode
+          pkgs.llm-agents.pi
         ];
         # ++ optionals linuxGraphical [ t3code ];
 

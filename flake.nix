@@ -3,9 +3,13 @@
 
   nixConfig = {
     extra-experimental-features = [ "pipe-operators" ];
-    extra-substituters = [ "https://nix-community.cachix.org" ];
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+      "https://cache.numtide.com"
+    ];
     extra-trusted-public-keys = [
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
     ];
   };
 
@@ -17,10 +21,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    claude-code = {
-      url = "github:sadjow/claude-code-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # No `follows`: packages substitute from cache.numtide.com only when
+    # built against the flake's own nixpkgs pin.
+    llm-agents.url = "github:numtide/llm-agents.nix";
 
     helium = {
       url = "github:amaanq/helium-flake";
@@ -117,8 +120,8 @@
           { ... }:
           {
             nixpkgs.overlays = [
-              inputs.claude-code.overlays.default
               inputs.emacs-overlay.overlays.default
+              inputs.llm-agents.overlays.default
             ];
           }
         )
