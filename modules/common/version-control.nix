@@ -8,8 +8,9 @@
 
 let
   inherit (lib.lists) singleton;
+  inherit (lib.modules) mkIf;
 in
-lib.mkIf config.flags.profiles.interactive {
+mkIf config.flags.profiles.interactive {
   home-manager.users.${username} = {
     home.packages = singleton pkgs.gh;
 
@@ -67,24 +68,25 @@ lib.mkIf config.flags.profiles.interactive {
         ];
       };
 
-      fish.functions.ppick.body = ''
-        set worktree_path (mktemp -d)
-        or return
+      nushell.extraConfig = ''
+        def ppick [...commits: string] {
+          let worktree = (mktemp --directory)
 
-        git worktree add --detach $worktree_path upstream/main
-        or return
+          git worktree add --detach $worktree upstream/main
 
-        set -l commits $argv
-        set -q commits[1]; or set commits (git rev-parse HEAD)
-        or return
+          let commits = if ($commits | is-empty) {
+            [(git rev-parse HEAD)]
+          } else {
+            $commits
+          }
 
-        git -C $worktree_path cherry-pick $commits
-        or return
+          git -C $worktree cherry-pick ...$commits
 
-        git -C $worktree_path push publish HEAD:main
-        and git worktree remove $worktree_path
-        and git fetch upstream
-        and git merge upstream/main -m "sync"
+          git -C $worktree push publish HEAD:main
+          git worktree remove $worktree
+          git fetch upstream
+          git merge upstream/main -m "sync"
+        }
       '';
     };
   };

@@ -1,11 +1,16 @@
 {
   config,
   lib,
+  pkgs,
   username,
   ...
 }:
 
-lib.mkIf config.flags.profiles.interactive {
+let
+  inherit (lib.meta) getExe;
+  inherit (lib.modules) mkIf;
+in
+mkIf config.flags.profiles.interactive {
   home-manager.users.${username} = {
     home.shellAliases = {
       zj = "zellij";
@@ -13,6 +18,10 @@ lib.mkIf config.flags.profiles.interactive {
       zjl = "zellij list-sessions";
     };
 
-    programs.zellij.enable = true;
+    programs.zellij = {
+      enable = true;
+
+      settings.default_shell = getExe pkgs.nushell;
+    };
   };
 }

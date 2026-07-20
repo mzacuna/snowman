@@ -9,13 +9,14 @@
 let
   inherit (lib.lists) optionals;
   inherit (lib.meta) getExe;
+  inherit (lib.modules) mkIf;
   inherit (lib.strings) escapeShellArg toJSON;
 
   linuxGraphical = config.flags.system.linux && config.flags.profiles.graphical;
   claude = pkgs.llm-agents.claude-code;
   t3code = pkgs.t3code.override { enableCodex = false; };
 in
-lib.mkIf config.flags.profiles.ai {
+mkIf config.flags.profiles.ai {
   home-manager.users.${username} =
     {
       config,
@@ -50,6 +51,14 @@ lib.mkIf config.flags.profiles.ai {
         package = pkgs.llm-agents.codex;
       };
 
+      programs.nushell.extraConfig = ''
+        def --wrapped claude2 [...args] {
+          with-env { CLAUDE_CONFIG_DIR: "${config.home.homeDirectory}/.config/claude-personal" } {
+            ${getExe claude} ...$args
+          }
+        }
+      '';
+
       programs.claude-code = {
         enable = true;
         package = claude;
@@ -64,13 +73,13 @@ lib.mkIf config.flags.profiles.ai {
 
         sessionVariables.CLAUDE_CONFIG_DIR = settingsDir;
 
-        shellAliases.claude2 = "CLAUDE_CONFIG_DIR=\"$XDG_CONFIG_HOME/claude-personal\" ${getExe claude}";
-
         activation.claudeCodeSettings =
           let
+            inherit (lib.hm.dag) entryAfter;
+
             jq = getExe pkgs.jq;
           in
-          lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          entryAfter [ "writeBoundary" ] ''
             _path="${settingsJSONPath}"
             _declared=${escapeShellArg (toJSON settings)}
 

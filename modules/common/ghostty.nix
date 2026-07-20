@@ -6,13 +6,22 @@
   ...
 }:
 
-lib.mkIf config.flags.profiles.graphical {
+let
+  inherit (lib.meta) getExe;
+  inherit (lib.modules) mkIf;
+
+  nushellWithSystemEnvironment = pkgs.writeShellScript "nushell-with-system-environment" ''
+    . ${config.system.build.setEnvironment}
+    exec ${getExe pkgs.nushell} "$@"
+  '';
+in
+mkIf config.flags.profiles.graphical {
   home-manager.users.${username}.programs.ghostty = {
     enable = true;
-    package = lib.mkIf config.flags.system.darwin null;
+    package = mkIf config.flags.system.darwin null;
 
     settings = {
-      command = "${pkgs.fish}/bin/fish";
+      command = "${nushellWithSystemEnvironment}";
       font-family = "Inconsolata Nerd Font";
       font-size = 22;
       theme = "Carbonfox";

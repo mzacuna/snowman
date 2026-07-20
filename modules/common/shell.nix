@@ -5,30 +5,22 @@
   ...
 }:
 
+let
+  inherit (lib.attrsets) optionalAttrs;
+in
 {
   home-manager.users.${username} = {
-    home = {
-      shell.enableFishIntegration = true;
-
-      shellAliases = {
-        g = "git";
-
-        "..." = "cd ../..";
-        "...." = "cd ../../..";
-        "....." = "cd ../../../..";
-        "......" = "cd ../../../../..";
-      }
-      // lib.optionalAttrs config.flags.profiles.interactive {
-        o = "bat --plain";
-        p = "bat --plain --paging=auto";
-      };
+    home.shellAliases = optionalAttrs config.flags.profiles.interactive {
+      g = "git";
+      o = "bat --plain";
+      p = "bat --plain --paging=auto";
     };
 
     programs.starship = {
       enable = true;
 
       settings = {
-        cmd_duration.min_time = 30000; # 30 seconds
+        cmd_duration.min_time = 30000; # 30 seconds.
         add_newline = false;
         status.disabled = false;
         directory.truncation_length = 4;
