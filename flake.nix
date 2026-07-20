@@ -121,7 +121,7 @@
           {
             nixpkgs.overlays = [
               inputs.emacs-overlay.overlays.default
-              inputs.llm-agents.overlays.default
+              inputs.llm-agents.overlays.shared-nixpkgs
             ];
           }
         )
