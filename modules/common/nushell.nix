@@ -11,6 +11,20 @@ let
   inherit (lib.strings) hasInfix;
 in
 mkIf config.flags.profiles.interactive {
+  programs = {
+    bash.interactiveShellInit = ''
+      if shopt -q login_shell && [ -z "''${NO_NU-}" ] && command -v nu > /dev/null; then
+        exec nu
+      fi
+    '';
+
+    zsh.interactiveShellInit = ''
+      if [[ -o login && -z "''${NO_NU-}" ]] && command -v nu > /dev/null; then
+        exec nu
+      fi
+    '';
+  };
+
   home-manager.users.${username} =
     { config, ... }:
     {
