@@ -41,12 +41,12 @@ mkIf config.flags.profiles.interactive {
           ) config.home.sessionVariables;
 
           extraConfig = ''
-            def search [term: string] {
-              ls **/* | where { ($in.name | path basename) =~ $term }
-            }
-
             def value [column: string] {
               get $column | get 0
+            }
+
+            def ngc [age: string = "7d"] {
+              sudo nix-collect-garbage --delete-older-than $age
             }
           '';
         };
