@@ -603,6 +603,15 @@ root, but the current buffer belongs to a nested project."
   (savehist-mode 1))
 
 
+;;; -- Server --
+
+(use-package server
+  :ensure nil
+  :config
+  (unless (server-running-p)
+    (server-start)))
+
+
 ;;; init.el ends here
 
 ;; Local Variables:

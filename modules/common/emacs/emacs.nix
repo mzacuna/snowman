@@ -91,7 +91,10 @@ in
   config = mkIf config.flags.profiles.graphical {
     home-manager.users.${username}.home = {
       packages = singleton pkgs.emacs-lsp-booster;
+
       file.".config/emacs/init.el".source = ./init.el;
+
+      sessionVariables.EDITOR = "emacsclient -t";
     };
   };
 }
