@@ -16,7 +16,6 @@
     pkgs.ripgrep # Modern alternative to 'grep'
     pkgs.jq # CLI JSON processor
     pkgs.jc # Converts many outputs to JSON
-    pkgs.fzf # Fuzzy finder
     pkgs.rage # Encryption tool
     pkgs.nh # nixos/darwin-rebuild wrapper with closure diffs
   ]
