@@ -53,5 +53,12 @@ in
     mutableTaps = false;
   };
 
-  environment.variables = homebrewEnv;
+  environment = {
+    systemPath = [
+      "${config.homebrew.prefix}/bin"
+      "${config.homebrew.prefix}/sbin"
+    ];
+
+    variables = homebrewEnv;
+  };
 }

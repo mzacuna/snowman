@@ -13,13 +13,18 @@ in
 mkIf config.flags.profiles.interactive {
   programs = {
     bash.interactiveShellInit = ''
-      if shopt -q login_shell && [ -z "''${NO_NU-}" ] && command -v nu > /dev/null; then
+      if shopt -q login_shell \
+        && [ -t 0 ] \
+        && [ -z "''${BASH_EXECUTION_STRING-}" ] \
+        && [ -z "''${NO_NU-}" ] \
+        && command -v nu > /dev/null; then
         exec nu
       fi
     '';
 
     zsh.interactiveShellInit = ''
-      if [[ -o login && -z "''${NO_NU-}" ]] && command -v nu > /dev/null; then
+      if [[ -o login && -t 0 && -z "''${ZSH_EXECUTION_STRING-}" && -z "''${NO_NU-}" ]] \
+        && command -v nu > /dev/null; then
         exec nu
       fi
     '';
