@@ -18,10 +18,12 @@
       wvous-tr-corner = 4; # Show desktop on top right corner
 
       persistent-apps = [
-        { app = "/Applications/Brave Browser.app"; }
+        { app = "/Applications/Helium.app"; }
         { app = "/Applications/Ghostty.app"; }
-        { app = "/Applications/Discord.app"; }
+        { app = "/Applications/Emacs.app"; }
         { app = "/Applications/Thunderbird.app"; }
+        { app = "/Applications/Discord.app"; }
+        { app = "/Applications/WhatsApp.app"; }
         { app = "/System/Applications/Notes.app"; }
       ];
     };
