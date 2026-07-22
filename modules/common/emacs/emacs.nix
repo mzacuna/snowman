@@ -94,7 +94,10 @@ in
 
       file.".config/emacs/init.el".source = ./init.el;
 
-      sessionVariables.EDITOR = "emacsclient -t";
+      sessionVariables = {
+        EDITOR = "emacsclient -t";
+        ALTERNATE_EDITOR = "emacs -nw";
+      };
     };
   };
 }
