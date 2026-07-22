@@ -8,7 +8,7 @@
     "thunderbird"
     "discord"
     "iina"
-    "transmission"
+    "qbittorrent"
     "rectangle"
     "monitorcontrol"
     "linearmouse"
