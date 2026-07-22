@@ -21,7 +21,12 @@ mkIf config.flags.profiles.interactive {
     programs.zellij = {
       enable = true;
 
-      settings.default_shell = getExe pkgs.nushell;
+      settings = {
+        default_shell = getExe pkgs.nushell;
+        default_layout = "compact";
+        pane_frames = false;
+        theme = "gruvbox-dark";
+      };
     };
   };
 }
