@@ -2,20 +2,20 @@
 
 {
   homebrew.casks = [
-    "google-chrome"
-    "firefox"
     "brave-browser"
-    "thunderbird"
     "discord"
+    "firefox"
+    "google-chrome"
     "iina"
+    "intellij-idea"
+    "linearmouse"
+    "monitorcontrol"
+    "obs"
     "qbittorrent"
     "rectangle"
-    "monitorcontrol"
-    "linearmouse"
-    "obs"
-    "tailscale-app"
-    "whatsapp"
     "spotify"
-    "intellij-idea"
+    "tailscale-app"
+    "thunderbird"
+    "whatsapp"
   ];
 }
