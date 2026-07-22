@@ -15,6 +15,7 @@ mkIf config.flags.profiles.interactive {
     bash.interactiveShellInit = ''
       if shopt -q login_shell \
         && [ -t 0 ] \
+        && [ "''${TERM-}" != dumb ] \
         && [ -z "''${BASH_EXECUTION_STRING-}" ] \
         && [ -z "''${NO_NU-}" ] \
         && command -v nu > /dev/null; then
@@ -23,7 +24,8 @@ mkIf config.flags.profiles.interactive {
     '';
 
     zsh.interactiveShellInit = ''
-      if [[ -o login && -t 0 && -z "''${ZSH_EXECUTION_STRING-}" && -z "''${NO_NU-}" ]] \
+      if [[ -o login && -t 0 && "''${TERM-}" != dumb \
+        && -z "''${ZSH_EXECUTION_STRING-}" && -z "''${NO_NU-}" ]] \
         && command -v nu > /dev/null; then
         exec nu
       fi
